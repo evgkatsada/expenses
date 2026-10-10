@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            transition: transform 0.15s ease-in-out;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .badge-category {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: 500;
+        }
+        .badge-payment {
+            background-color: #e3f2fd;
+            color: #0d6efd;
+            font-weight: 500;
+        }
+        .amount-text {
+            font-weight: 600;
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 shadow-sm">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/expenses">
+            <i class="bi bi-wallet2 text-success fs-4"></i>
+            <span>Expense Tracker</span>
+        </a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link text-white-50" href="/api/v1/expenses" target="_blank">
+                <i class="bi bi-code-slash"></i> REST API
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container pb-5">
+
+    <!-- Flash Success Message -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <span th:text="${successMessage}">Operation completed successfully.</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Month Navigation Bar -->
+    <div class="card p-3 mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <h4 class="mb-0 fw-bold">
+                    <i class="bi bi-calendar3 text-primary me-2"></i>
+                    <span th:text="${currentMonthFormatted}">October 2026</span>
+                </h4>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <a th:href="@{/expenses(month=${previousMonth})}" class="btn btn-outline-secondary btn-sm" title="Previous Month">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+
+                <form th:action="@{/expenses}" method="get" class="d-flex align-items-center gap-2 m-0">
+                    <input type="month" name="month" class="form-control form-control-sm" th:value="${selectedMonth}" onchange="this.form.submit()">
+                </form>
+
+                <a th:href="@{/expenses(month=${nextMonth})}" class="btn btn-outline-secondary btn-sm" title="Next Month">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+
+                <a th:href="@{/expenses}" class="btn btn-sm btn-outline-primary ms-2">
+                    Current Month
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card bg-primary text-white p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-semibold">Total Expenses</div>
+                        <h2 class="fw-bold mb-0 mt-1" th:text="'$' + ${#numbers.formatDecimal(summary.totalAmount, 1, 'COMMA', 2, 'POINT')}">$0.00</h2>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-cash-stack fs-4 text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-success text-white p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-semibold">Total Transactions</div>
+                        <h2 class="fw-bold mb-0 mt-1" th:text="${summary.count}">0</h2>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-receipt fs-4 text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card bg-info text-white p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="text-white-50 small text-uppercase fw-semibold">Categories Used</div>
+                        <h2 class="fw-bold mb-0 mt-1" th:text="${summary.categoryBreakdown.size()}">0</h2>
+                    </div>
+                    <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-tags-fill fs-4 text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row g-4">
+        <!-- Left Column: Add Expense Form & Breakdown -->
+        <div class="col-lg-4">
+            <!-- Add Expense Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-plus-circle text-primary me-2"></i>Add Expense
+                    </h5>
+                </div>
+                <div class="card-body pt-0">
+                    <form th:action="@{/expenses}" th:object="${newExpense}" method="post">
+                        <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
+
+                        <!-- Date -->
+                        <div class="mb-3">
+                            <label for="date" class="form-label small fw-semibold text-muted">Date</label>
+                            <input type="date" class="form-control" id="date" th:field="*{date}"
+                                   th:classappend="${#fields.hasErrors('date')} ? 'is-invalid' : ''" required>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('date')}" th:errors="*{date}">Invalid date</div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label small fw-semibold text-muted">Description</label>
+                            <input type="text" class="form-control" id="description" placeholder="e.g., Weekly groceries"
+                                   th:field="*{description}"
+                                   th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''" required>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Invalid description</div>
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="mb-3">
+                            <label for="amount" class="form-label small fw-semibold text-muted">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" min="0.01" class="form-control" id="amount"
+                                       placeholder="0.00" th:field="*{amount}"
+                                       th:classappend="${#fields.hasErrors('amount')} ? 'is-invalid' : ''" required>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}">Invalid amount</div>
+                            </div>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label for="category" class="form-label small fw-semibold text-muted">Category</label>
+                            <select class="form-select" id="category" th:field="*{category}"
+                                    th:classappend="${#fields.hasErrors('category')} ? 'is-invalid' : ''" required>
+                                <option value="" disabled selected>Select category...</option>
+                                <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat.displayName}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Please select a category</div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="mb-3">
+                            <label for="paymentMethod" class="form-label small fw-semibold text-muted">Payment Method</label>
+                            <select class="form-select" id="paymentMethod" th:field="*{paymentMethod}"
+                                    th:classappend="${#fields.hasErrors('paymentMethod')} ? 'is-invalid' : ''" required>
+                                <option value="" disabled selected>Select payment method...</option>
+                                <option th:each="pm : ${paymentMethods}" th:value="${pm}" th:text="${pm.displayName}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('paymentMethod')}" th:errors="*{paymentMethod}">Please select a payment method</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                            <i class="bi bi-save me-1"></i> Save Expense
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Breakdown Card -->
+            <div class="card">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-pie-chart text-info me-2"></i>Breakdown
+                    </h5>
+                </div>
+                <div class="card-body pt-0">
+                    <!-- Category Breakdown -->
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2">By Category</h6>
+                    <div th:if="${#maps.isEmpty(summary.categoryBreakdown)}" class="text-muted small mb-3">
+                        No category data for this month.
+                    </div>
+                    <div th:unless="${#maps.isEmpty(summary.categoryBreakdown)}" class="mb-3">
+                        <div th:each="entry : ${summary.categoryBreakdown}" class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span class="small" th:text="${entry.key.displayName}">Category</span>
+                            <span class="small fw-semibold" th:text="'$' + ${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Breakdown -->
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2 mt-4">By Payment Method</h6>
+                    <div th:if="${#maps.isEmpty(summary.paymentMethodBreakdown)}" class="text-muted small">
+                        No payment method data for this month.
+                    </div>
+                    <div th:unless="${#maps.isEmpty(summary.paymentMethodBreakdown)}">
+                        <div th:each="entry : ${summary.paymentMethodBreakdown}" class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span class="small" th:text="${entry.key.displayName}">Payment Method</span>
+                            <span class="small fw-semibold" th:text="'$' + ${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Expenses Table -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-list-ul text-secondary me-2"></i>Expense Records
+                    </h5>
+                    <span class="badge bg-light text-dark border" th:text="${expenses.size()} + ' records'">0 records</span>
+                </div>
+                <div class="card-body pt-0">
+                    <!-- Empty State -->
+                    <div th:if="${#lists.isEmpty(expenses)}" class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="bi bi-inbox fs-1"></i>
+                        </div>
+                        <h6 class="text-muted">No expenses recorded for this month.</h6>
+                        <p class="text-muted small">Use the form on the left to record your first expense!</p>
+                    </div>
+
+                    <!-- Table -->
+                    <div th:unless="${#lists.isEmpty(expenses)}" class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Description</th>
+                                    <th scope="col">Category</th>
+                                    <th scope="col">Payment</th>
+                                    <th scope="col" class="text-end">Amount</th>
+                                    <th scope="col" class="text-center" style="width: 70px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="exp : ${expenses}">
+                                    <td class="small text-nowrap" th:text="${exp.date}">2026-10-10</td>
+                                    <td class="fw-semibold" th:text="${exp.description}">Groceries</td>
+                                    <td>
+                                        <span class="badge badge-category" th:text="${exp.categoryDisplayName}">Groceries</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-payment" th:text="${exp.paymentMethodDisplayName}">Card</span>
+                                    </td>
+                                    <td class="text-end amount-text" th:text="'$' + ${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 2, 'POINT')}">$10.00</td>
+                                    <td class="text-center">
+                                        <form th:action="@{/expenses/{id}/delete(id=${exp.id})}" method="post" onsubmit="return confirm('Are you sure you want to delete this expense?');" class="d-inline">
+                                            <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
+                                            <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" title="Delete">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
