@@ -4,6 +4,7 @@ import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.Expense;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.repository.ExpenseRepository;
@@ -41,7 +42,8 @@ class ExpenseServiceTest {
                 "Grocery shopping",
                 new BigDecimal("45.50"),
                 Category.GROCERIES,
-                PaymentMethod.CREDIT_CARD
+                PaymentMethod.CREDIT_CARD,
+                Currency.EUR
         );
         sampleExpense.setId(1L);
     }
@@ -53,7 +55,8 @@ class ExpenseServiceTest {
                 sampleExpense.getDescription(),
                 sampleExpense.getAmount(),
                 sampleExpense.getCategory(),
-                sampleExpense.getPaymentMethod()
+                sampleExpense.getPaymentMethod(),
+                Currency.EUR
         );
 
         when(expenseRepository.save(any(Expense.class))).thenReturn(sampleExpense);
@@ -68,6 +71,8 @@ class ExpenseServiceTest {
         assertEquals("Groceries", response.getCategoryDisplayName());
         assertEquals(PaymentMethod.CREDIT_CARD, response.getPaymentMethod());
         assertEquals("Credit Card", response.getPaymentMethodDisplayName());
+        assertEquals(Currency.EUR, response.getCurrency());
+        assertEquals("€", response.getCurrencySymbol());
     }
 
     @Test
@@ -80,7 +85,8 @@ class ExpenseServiceTest {
                 "Restaurant dinner",
                 new BigDecimal("25.00"),
                 Category.FOOD_AND_DINING,
-                PaymentMethod.CASH
+                PaymentMethod.CASH,
+                Currency.EUR
         );
         expense2.setId(2L);
 
@@ -96,5 +102,6 @@ class ExpenseServiceTest {
         assertEquals(new BigDecimal("25.00"), summary.getCategoryBreakdown().get(Category.FOOD_AND_DINING));
         assertEquals(new BigDecimal("45.50"), summary.getPaymentMethodBreakdown().get(PaymentMethod.CREDIT_CARD));
         assertEquals(new BigDecimal("25.00"), summary.getPaymentMethodBreakdown().get(PaymentMethod.CASH));
+        assertEquals(new BigDecimal("70.50"), summary.getCurrencyBreakdown().get(Currency.EUR));
     }
 }

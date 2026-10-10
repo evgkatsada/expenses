@@ -1,6 +1,7 @@
 package com.example.expenses.dto;
 
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -31,16 +32,25 @@ public class ExpenseRequestDto {
     @NotNull(message = "Payment method is required")
     private PaymentMethod paymentMethod;
 
+    @NotNull(message = "Currency is required")
+    private Currency currency = Currency.EUR;
+
     public ExpenseRequestDto() {
         this.date = LocalDate.now();
+        this.currency = Currency.EUR;
     }
 
     public ExpenseRequestDto(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+        this(date, description, amount, category, paymentMethod, Currency.EUR);
+    }
+
+    public ExpenseRequestDto(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
         this.date = date;
         this.description = description;
         this.amount = amount;
         this.category = category;
         this.paymentMethod = paymentMethod;
+        this.currency = currency != null ? currency : Currency.EUR;
     }
 
     public LocalDate getDate() {
@@ -81,5 +91,13 @@ public class ExpenseRequestDto {
 
     public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency != null ? currency : Currency.EUR;
     }
 }

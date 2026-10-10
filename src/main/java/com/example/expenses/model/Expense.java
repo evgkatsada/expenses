@@ -29,15 +29,25 @@ public class Expense {
     @Column(name = "payment_method", nullable = false, length = 50)
     private PaymentMethod paymentMethod;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Currency currency = Currency.EUR;
+
     public Expense() {
+        this.currency = Currency.EUR;
     }
 
     public Expense(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+        this(date, description, amount, category, paymentMethod, Currency.EUR);
+    }
+
+    public Expense(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
         this.date = date;
         this.description = description;
         this.amount = amount;
         this.category = category;
         this.paymentMethod = paymentMethod;
+        this.currency = currency != null ? currency : Currency.EUR;
     }
 
     public Long getId() {
@@ -86,5 +96,13 @@ public class Expense {
 
     public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency != null ? currency : Currency.EUR;
     }
 }

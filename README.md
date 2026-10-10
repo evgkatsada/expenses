@@ -119,7 +119,8 @@ When developing an Android client (using Retrofit, Ktor, Volley, or OkHttp), use
     "description": "Coffee and sandwich",
     "amount": 7.50,
     "category": "FOOD_AND_DINING",
-    "paymentMethod": "CREDIT_CARD"
+    "paymentMethod": "CREDIT_CARD",
+    "currency": "EUR"
   }
   ```
 - **Response:** `201 Created` with created `ExpenseResponseDto`.
@@ -133,7 +134,8 @@ curl -X POST http://localhost:8080/api/v1/expenses \
     "description": "Coffee and sandwich",
     "amount": 7.50,
     "category": "FOOD_AND_DINING",
-    "paymentMethod": "CREDIT_CARD"
+    "paymentMethod": "CREDIT_CARD",
+    "currency": "EUR"
   }'
 ```
 
@@ -162,6 +164,9 @@ curl http://localhost:8080/api/v1/expenses?year=2026&month=10
     "paymentMethodBreakdown": {
       "CREDIT_CARD": 45.50,
       "CASH": 25.00
+    },
+    "currencyBreakdown": {
+      "EUR": 70.50
     }
   }
   ```

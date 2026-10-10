@@ -1,6 +1,7 @@
 package com.example.expenses.dto;
 
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
 
 import java.math.BigDecimal;
@@ -16,11 +17,18 @@ public class ExpenseResponseDto {
     private String categoryDisplayName;
     private PaymentMethod paymentMethod;
     private String paymentMethodDisplayName;
+    private Currency currency;
+    private String currencySymbol;
+    private String currencyDisplayName;
 
     public ExpenseResponseDto() {
     }
 
     public ExpenseResponseDto(Long id, LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+        this(id, date, description, amount, category, paymentMethod, Currency.EUR);
+    }
+
+    public ExpenseResponseDto(Long id, LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
         this.id = id;
         this.date = date;
         this.description = description;
@@ -29,6 +37,9 @@ public class ExpenseResponseDto {
         this.categoryDisplayName = category != null ? category.getDisplayName() : "";
         this.paymentMethod = paymentMethod;
         this.paymentMethodDisplayName = paymentMethod != null ? paymentMethod.getDisplayName() : "";
+        this.currency = currency != null ? currency : Currency.EUR;
+        this.currencySymbol = this.currency.getSymbol();
+        this.currencyDisplayName = this.currency.getDisplayName();
     }
 
     public Long getId() {
@@ -87,5 +98,31 @@ public class ExpenseResponseDto {
 
     public String getPaymentMethodDisplayName() {
         return paymentMethodDisplayName;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency != null ? currency : Currency.EUR;
+        this.currencySymbol = this.currency.getSymbol();
+        this.currencyDisplayName = this.currency.getDisplayName();
+    }
+
+    public String getCurrencySymbol() {
+        return currencySymbol;
+    }
+
+    public void setCurrencySymbol(String currencySymbol) {
+        this.currencySymbol = currencySymbol;
+    }
+
+    public String getCurrencyDisplayName() {
+        return currencyDisplayName;
+    }
+
+    public void setCurrencyDisplayName(String currencyDisplayName) {
+        this.currencyDisplayName = currencyDisplayName;
     }
 }

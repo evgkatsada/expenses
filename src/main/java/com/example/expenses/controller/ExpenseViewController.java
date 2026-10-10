@@ -3,6 +3,7 @@ package com.example.expenses.controller;
 import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.service.ExpenseService;
 import jakarta.validation.Valid;
@@ -46,6 +47,7 @@ public class ExpenseViewController {
         if (!model.containsAttribute("newExpense")) {
             ExpenseRequestDto dto = new ExpenseRequestDto();
             dto.setDate(LocalDate.now());
+            dto.setCurrency(Currency.EUR);
             model.addAttribute("newExpense", dto);
         }
 
@@ -69,8 +71,9 @@ public class ExpenseViewController {
             return "index";
         }
 
-        log.info("Web form recorded new expense: description='{}', amount={}, category={}, paymentMethod={}, date={}",
-                newExpense.getDescription(), newExpense.getAmount(), newExpense.getCategory(), newExpense.getPaymentMethod(), newExpense.getDate());
+        log.info("Web form recorded new expense: description='{}', amount={} {}, category={}, paymentMethod={}, date={}",
+                newExpense.getDescription(), newExpense.getAmount(), newExpense.getCurrency(),
+                newExpense.getCategory(), newExpense.getPaymentMethod(), newExpense.getDate());
         expenseService.createExpense(newExpense);
         redirectAttributes.addFlashAttribute("successMessage", "Expense recorded successfully!");
 
@@ -102,6 +105,8 @@ public class ExpenseViewController {
         model.addAttribute("summary", summary);
         model.addAttribute("categories", Category.values());
         model.addAttribute("paymentMethods", PaymentMethod.values());
+        model.addAttribute("currencies", Currency.values());
+        model.addAttribute("defaultCurrency", Currency.EUR);
         model.addAttribute("selectedMonth", yearMonth.toString());
         model.addAttribute("previousMonth", yearMonth.minusMonths(1).toString());
         model.addAttribute("nextMonth", yearMonth.plusMonths(1).toString());

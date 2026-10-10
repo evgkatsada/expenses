@@ -4,6 +4,7 @@ import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.Expense;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.repository.ExpenseRepository;
@@ -31,8 +32,9 @@ public class ExpenseService {
     }
 
     public ExpenseResponseDto createExpense(ExpenseRequestDto requestDto) {
-        log.info("Creating new expense: description='{}', amount={}, category={}, paymentMethod={}, date={}",
-                requestDto.getDescription(), requestDto.getAmount(), requestDto.getCategory(), requestDto.getPaymentMethod(), requestDto.getDate());
+        log.info("Creating new expense: description='{}', amount={} {}, category={}, paymentMethod={}, date={}",
+                requestDto.getDescription(), requestDto.getAmount(), requestDto.getCurrency(),
+                requestDto.getCategory(), requestDto.getPaymentMethod(), requestDto.getDate());
         Expense expense = toEntity(requestDto);
         Expense saved = expenseRepository.save(expense);
         log.info("Successfully created expense with ID: {}", saved.getId());
@@ -57,6 +59,7 @@ public class ExpenseService {
         expense.setAmount(requestDto.getAmount());
         expense.setCategory(requestDto.getCategory());
         expense.setPaymentMethod(requestDto.getPaymentMethod());
+        expense.setCurrency(requestDto.getCurrency());
 
         Expense updated = expenseRepository.save(expense);
         log.info("Successfully updated expense with ID: {}", updated.getId());
@@ -121,6 +124,13 @@ public class ExpenseService {
                         Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
                 ));
 
+        Map<Currency, BigDecimal> currencyBreakdown = expenses.stream()
+                .collect(Collectors.groupingBy(
+                        Expense::getCurrency,
+                        () -> new EnumMap<>(Currency.class),
+                        Collectors.reducing(BigDecimal.ZERO, Expense::getAmount, BigDecimal::add)
+                ));
+
         log.info("Monthly summary calculated for {}-{}: {} expenses found, total={}",
                 year, String.format("%02d", month), expenses.size(), totalAmount);
 
@@ -130,7 +140,8 @@ public class ExpenseService {
                 totalAmount,
                 expenses.size(),
                 categoryBreakdown,
-                paymentMethodBreakdown
+                paymentMethodBreakdown,
+                currencyBreakdown
         );
     }
 
@@ -141,7 +152,8 @@ public class ExpenseService {
                 entity.getDescription(),
                 entity.getAmount(),
                 entity.getCategory(),
-                entity.getPaymentMethod()
+                entity.getPaymentMethod(),
+                entity.getCurrency()
         );
     }
 
@@ -151,7 +163,8 @@ public class ExpenseService {
                 dto.getDescription(),
                 dto.getAmount(),
                 dto.getCategory(),
-                dto.getPaymentMethod()
+                dto.getPaymentMethod(),
+                dto.getCurrency()
         );
     }
 }

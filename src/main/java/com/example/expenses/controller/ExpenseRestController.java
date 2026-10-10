@@ -4,6 +4,7 @@ import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.service.ExpenseService;
 import jakarta.validation.Valid;
@@ -47,8 +48,8 @@ public class ExpenseRestController {
 
     @PostMapping
     public ResponseEntity<ExpenseResponseDto> createExpense(@Valid @RequestBody ExpenseRequestDto requestDto) {
-        log.info("REST POST /api/v1/expenses requested: description='{}', amount={}",
-                requestDto.getDescription(), requestDto.getAmount());
+        log.info("REST POST /api/v1/expenses requested: description='{}', amount={} {}",
+                requestDto.getDescription(), requestDto.getAmount(), requestDto.getCurrency());
         ExpenseResponseDto created = expenseService.createExpense(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -93,8 +94,14 @@ public class ExpenseRestController {
                 .map(p -> Map.of("key", p.name(), "displayName", p.getDisplayName()))
                 .toList();
 
+        List<Map<String, String>> currencies = Arrays.stream(Currency.values())
+                .map(c -> Map.of("key", c.name(), "symbol", c.getSymbol(), "displayName", c.getDisplayName()))
+                .toList();
+
         metadata.put("categories", categories);
         metadata.put("paymentMethods", paymentMethods);
+        metadata.put("currencies", currencies);
+        metadata.put("defaultCurrency", Currency.EUR.name());
         return ResponseEntity.ok(metadata);
     }
 }
