@@ -30,7 +30,7 @@ public class Expense {
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, columnDefinition = "VARCHAR(10) DEFAULT 'EUR'")
     private Currency currency = Currency.EUR;
 
     public Expense() {

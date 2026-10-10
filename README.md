@@ -193,3 +193,29 @@ curl http://localhost:8080/api/v1/expenses/metadata
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/expenses/1
 ```
+
+---
+
+## Database Migrations
+
+If you have existing expense records created before currency support was added:
+
+A migration script is provided at:  
+[`src/main/resources/db/migration/migrate_expenses_currency.sql`](src/main/resources/db/migration/migrate_expenses_currency.sql)
+
+### How to execute the migration:
+
+```bash
+# If using the Docker PostgreSQL container:
+docker exec -i expenses-postgres psql -U postgres -d expensedb < src/main/resources/db/migration/migrate_expenses_currency.sql
+
+# If using local psql directly:
+psql -h localhost -U postgres -d expensedb -f src/main/resources/db/migration/migrate_expenses_currency.sql
+```
+
+The script:
+1. Adds the `currency` column (`VARCHAR(10)`) if it does not already exist.
+2. Backfills all existing records where `currency IS NULL` to `'EUR'`.
+3. Sets `'EUR'` as the default column value.
+4. Enforces a `NOT NULL` constraint.
+
