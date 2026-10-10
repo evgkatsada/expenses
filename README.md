@@ -8,14 +8,16 @@ It is architected with a **dual-controller pattern** (`ExpenseViewController` fo
 
 ## Features
 
-- **Expense Entry:** Record expenses with Date, Description, Amount, Category, and Payment Method.
+- **Expense Entry:** Record expenses with Date, Description, Amount, **Currency** (defaults to Euro `€`), Category, and Payment Method.
+- **Multi-Currency Support:** Choose between `EUR` (€, default), `USD` ($), `GBP` (£), `CHF`, `JPY` (¥), `CAD` (CA$), and `AUD` (AU$).
 - **Categorization & Filtering by Month:** Filter expenses by month with instant totals and breakdowns.
 - **Summary Metrics:**
-  - Total amount spent in the selected month.
+  - Total amount spent in the selected month (formatted in Euro by default or multi-currency summary).
   - Total number of transactions.
+  - Expense breakdown by Currency.
   - Expense breakdown by Category (`Groceries`, `Food & Dining`, `Utilities`, `Transportation`, `Entertainment`, `Healthcare`, `Shopping`, `Other`).
   - Expense breakdown by Payment Method (`Cash`, `Credit Card`, `Debit Card`, `Gift Card`, `Bank Transfer`, `Other`).
-- **Data Persistence:** Backed by PostgreSQL (`docker-compose.yml` included).
+- **Data Persistence:** Backed by PostgreSQL (`docker-compose.yml` included) with automated migration scripts.
 - **Mobile-Ready REST API:** Full JSON CRUD and summary endpoints under `/api/v1/expenses` with CORS enabled.
 
 ---
@@ -48,9 +50,10 @@ expenses/
 │   │   │   ├── dto/
 │   │   │   │   ├── ExpenseRequestDto.java        # Form/API input validation DTO
 │   │   │   │   ├── ExpenseResponseDto.java       # Clean API output DTO
-│   │   │   │   └── MonthlySummaryDto.java        # Monthly calculation metrics DTO
+│   │   │   │   └── MonthlySummaryDto.java        # Monthly calculation metrics & currency breakdowns
 │   │   │   ├── model/
 │   │   │   │   ├── Category.java                 # Expense Category enum
+│   │   │   │   ├── Currency.java                 # Currency enum (EUR default, USD, GBP, etc.)
 │   │   │   │   ├── PaymentMethod.java            # Payment Method enum
 │   │   │   │   └── Expense.java                  # JPA Entity mapped to PostgreSQL
 │   │   │   ├── repository/
@@ -58,9 +61,12 @@ expenses/
 │   │   │   └── service/
 │   │   │       └── ExpenseService.java           # Business logic & summary aggregations
 │   │   └── resources/
-│   │       ├── application.properties            # PostgreSQL and server settings
+│   │       ├── application.properties            # PostgreSQL, logging and server settings
+│   │       ├── db/
+│   │       │   └── migration/
+│   │       │       └── migrate_expenses_currency.sql  # SQL migration for existing records
 │   │       └── templates/
-│   │           └── index.html                    # Responsive Bootstrap 5 UI
+│   │           └── index.html                    # Responsive Bootstrap 5 UI with currency support
 │   └── test/
 │       └── java/com/example/expenses/
 │           └── ExpenseServiceTest.java           # Service layer unit tests
@@ -176,9 +182,31 @@ curl http://localhost:8080/api/v1/expenses?year=2026&month=10
 curl http://localhost:8080/api/v1/expenses/summary?year=2026&month=10
 ```
 
-### 4. Get Metadata (Categories & Payment Methods for Dropdowns)
+### 4. Get Metadata (Categories, Payment Methods & Currencies)
 - **Endpoint:** `GET /api/v1/expenses/metadata`
-- **Response:** `200 OK` returning all supported categories and payment methods with their display names.
+- **Response:** `200 OK` returning all supported categories, payment methods, supported currencies, and the default currency (`EUR`).
+  ```json
+  {
+    "defaultCurrency": "EUR",
+    "currencies": [
+      { "key": "EUR", "symbol": "€", "displayName": "Euro (EUR)" },
+      { "key": "USD", "symbol": "$", "displayName": "US Dollar (USD)" },
+      { "key": "GBP", "symbol": "£", "displayName": "British Pound (GBP)" },
+      { "key": "CHF", "symbol": "CHF", "displayName": "Swiss Franc (CHF)" },
+      { "key": "JPY", "symbol": "¥", "displayName": "Japanese Yen (JPY)" },
+      { "key": "CAD", "symbol": "CA$", "displayName": "Canadian Dollar (CAD)" },
+      { "key": "AUD", "symbol": "AU$", "displayName": "Australian Dollar (AUD)" }
+    ],
+    "categories": [
+      { "key": "GROCERIES", "displayName": "Groceries" },
+      { "key": "FOOD_AND_DINING", "displayName": "Food & Dining" }
+    ],
+    "paymentMethods": [
+      { "key": "CREDIT_CARD", "displayName": "Credit Card" },
+      { "key": "CASH", "displayName": "Cash" }
+    ]
+  }
+  ```
 
 **Sample cURL:**
 ```bash
