@@ -12,7 +12,8 @@ public class ExpensesApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(ExpensesApplication.class, args);
-        log.info("Expenses application started successfully. Access UI at http://localhost:8080/expenses and API at http://localhost:8080/api/v1/expenses");
+        log.info("Expenses application started successfully. " +
+                "Access UI at http://localhost:8080/expenses and API at http://localhost:8080/api/v1/expenses");
     }
 }
 

@@ -17,8 +17,9 @@ It is architected with a **dual-controller pattern** (`ExpenseViewController` fo
   - Expense breakdown by Currency.
   - Expense breakdown by Category (`Groceries`, `Food & Dining`, `Utilities`, `Transportation`, `Entertainment`, `Healthcare`, `Shopping`, `Other`).
   - Expense breakdown by Payment Method (`Cash`, `Credit Card`, `Debit Card`, `Gift Card`, `Bank Transfer`, `Other`).
+- **Internationalization (i18n):** Native support for English and **Greek (Ελληνικά)** with on-the-fly language switching, cookie persistence (`EXPENSES_LOCALE`), localized calendar month headings, validation messages, and categories/payment methods/currencies.
 - **Data Persistence:** Backed by PostgreSQL (`docker-compose.yml` included) with automated migration scripts.
-- **Mobile-Ready REST API:** Full JSON CRUD and summary endpoints under `/api/v1/expenses` with CORS enabled.
+- **Mobile-Ready REST API:** Full JSON CRUD and summary endpoints under `/api/v1/expenses` with CORS enabled and localized metadata support.
 
 ---
 
@@ -43,12 +44,13 @@ expenses/
 │   │   ├── java/com/example/expenses/
 │   │   │   ├── ExpensesApplication.java
 │   │   │   ├── config/
-│   │   │   │   └── CorsConfig.java               # Cross-Origin configuration for Android / frontend clients
+│   │   │   │   ├── CorsConfig.java               # Cross-Origin configuration for Android / frontend clients
+│   │   │   │   └── I18nConfig.java               # LocaleResolver (cookie) & LocaleChangeInterceptor (?lang=)
 │   │   │   ├── controller/
 │   │   │   │   ├── ExpenseRestController.java    # REST API for Android/JSON clients (/api/v1/expenses)
 │   │   │   │   └── ExpenseViewController.java    # Thymeleaf Web UI controller (/expenses)
 │   │   │   ├── dto/
-│   │   │   │   ├── ExpenseRequestDto.java        # Form/API input validation DTO
+│   │   │   │   ├── ExpenseRequestDto.java        # Form/API input validation DTO (localized messages)
 │   │   │   │   ├── ExpenseResponseDto.java       # Clean API output DTO
 │   │   │   │   └── MonthlySummaryDto.java        # Monthly calculation metrics & currency breakdowns
 │   │   │   ├── model/
@@ -61,15 +63,21 @@ expenses/
 │   │   │   └── service/
 │   │   │       └── ExpenseService.java           # Business logic & summary aggregations
 │   │   └── resources/
-│   │       ├── application.properties            # PostgreSQL, logging and server settings
+│   │       ├── application.properties            # PostgreSQL, logging, server & i18n settings
+│   │       ├── messages.properties               # Default / English translation messages bundle
+│   │       ├── messages_en.properties            # English translation messages bundle
+│   │       ├── messages_el.properties            # Greek (Ελληνικά) translation messages bundle
 │   │       ├── db/
 │   │       │   └── migration/
 │   │       │       └── migrate_expenses_currency.sql  # SQL migration for existing records
 │   │       └── templates/
-│   │           └── index.html                    # Responsive Bootstrap 5 UI with currency support
+│   │           └── index.html                    # Responsive Bootstrap 5 UI with language switcher
 │   └── test/
 │       └── java/com/example/expenses/
-│           └── ExpenseServiceTest.java           # Service layer unit tests
+│           ├── ExpenseServiceTest.java           # Service layer unit tests
+│           ├── ExpenseViewControllerTest.java    # Web UI MVC & localization tests (EN & EL)
+│           ├── ExpenseRestControllerTest.java    # REST API & localized metadata tests
+│           └── I18nTest.java                     # Message bundle resolution unit tests
 └── README.md
 ```
 
@@ -184,33 +192,30 @@ curl http://localhost:8080/api/v1/expenses/summary?year=2026&month=10
 
 ### 4. Get Metadata (Categories, Payment Methods & Currencies)
 - **Endpoint:** `GET /api/v1/expenses/metadata`
-- **Response:** `200 OK` returning all supported categories, payment methods, supported currencies, and the default currency (`EUR`).
+- **Headers:** `Accept-Language: el` (optional, for localized names in Greek or English)
+- **Response:** `200 OK` returning all supported categories, payment methods, supported currencies, default currency, and `localizedName`:
   ```json
   {
     "defaultCurrency": "EUR",
     "currencies": [
-      { "key": "EUR", "symbol": "€", "displayName": "Euro (EUR)" },
-      { "key": "USD", "symbol": "$", "displayName": "US Dollar (USD)" },
-      { "key": "GBP", "symbol": "£", "displayName": "British Pound (GBP)" },
-      { "key": "CHF", "symbol": "CHF", "displayName": "Swiss Franc (CHF)" },
-      { "key": "JPY", "symbol": "¥", "displayName": "Japanese Yen (JPY)" },
-      { "key": "CAD", "symbol": "CA$", "displayName": "Canadian Dollar (CAD)" },
-      { "key": "AUD", "symbol": "AU$", "displayName": "Australian Dollar (AUD)" }
+      { "key": "EUR", "symbol": "€", "displayName": "Euro (EUR)", "localizedName": "Ευρώ (EUR)" },
+      { "key": "USD", "symbol": "$", "displayName": "US Dollar (USD)", "localizedName": "Δολάριο ΗΠΑ (USD)" },
+      { "key": "GBP", "symbol": "£", "displayName": "British Pound (GBP)", "localizedName": "Βρετανική Λίρα (GBP)" }
     ],
     "categories": [
-      { "key": "GROCERIES", "displayName": "Groceries" },
-      { "key": "FOOD_AND_DINING", "displayName": "Food & Dining" }
+      { "key": "GROCERIES", "displayName": "Groceries", "localizedName": "Παντοπωλείο / Σούπερ Μάρκετ" },
+      { "key": "FOOD_AND_DINING", "displayName": "Food & Dining", "localizedName": "Φαγητό & Εστίαση" }
     ],
     "paymentMethods": [
-      { "key": "CREDIT_CARD", "displayName": "Credit Card" },
-      { "key": "CASH", "displayName": "Cash" }
+      { "key": "CREDIT_CARD", "displayName": "Credit Card", "localizedName": "Πιστωτική Κάρτα" },
+      { "key": "CASH", "displayName": "Cash", "localizedName": "Μετρητά" }
     ]
   }
   ```
 
-**Sample cURL:**
+**Sample cURL (in Greek):**
 ```bash
-curl http://localhost:8080/api/v1/expenses/metadata
+curl -H "Accept-Language: el" http://localhost:8080/api/v1/expenses/metadata
 ```
 
 ### 5. Delete an Expense
@@ -221,6 +226,32 @@ curl http://localhost:8080/api/v1/expenses/metadata
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/expenses/1
 ```
+
+---
+
+## Internationalization (i18n) & Language Support
+
+The application natively supports **English** and **Greek (Ελληνικά)**:
+
+### 1. Web UI Language Switcher
+- A language dropdown in the top-right navbar lets users toggle between **🇬🇧 English** and **🇬🇷 Ελληνικά** with a single click.
+- The switcher automatically preserves the user's currently selected month (e.g. `/expenses?month=2026-10&lang=el`).
+- The choice is saved into a persistent browser cookie (`EXPENSES_LOCALE` valid for 30 days), remembering the user's preferred language across visits.
+
+### 2. Fully Localized Components
+- **Navbar & Page Title:** "Expense Tracker" / "Διαχείριση Εξόδων".
+- **Month Calendar Heading:** Dynamic month name based on locale ("Οκτώβριος 2026" / "October 2026").
+- **Dashboard Metrics:** "Total Expenses" / "ΣΥΝΟΛΙΚΑ ΕΞΟΔΑ", "Total Transactions" / "ΣΥΝΟΛΟ ΣΥΝΑΛΛΑΓΩΝ", etc.
+- **Form Controls & Dropdowns:** All categories (e.g. "Groceries" / "Παντοπωλείο / Σούπερ Μάρκετ"), payment methods (e.g. "Credit Card" / "Πιστωτική Κάρτα"), currencies, and placeholders.
+- **Form Validation Errors:** Immediate localized feedback on missing or invalid fields.
+- **Flash Alerts:** Action confirmation messages on creation or deletion.
+- **Records Table & Actions:** Headers, badges, empty state indicators, and delete confirmation dialogs.
+
+### 3. Resource Bundles
+Translations are maintained in standard Spring Boot resource bundles:
+- `src/main/resources/messages.properties` (Default / English)
+- `src/main/resources/messages_en.properties` (English)
+- `src/main/resources/messages_el.properties` (Greek - UTF-8 encoded)
 
 ---
 

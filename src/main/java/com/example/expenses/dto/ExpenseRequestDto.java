@@ -14,25 +14,25 @@ import java.time.LocalDate;
 
 public class ExpenseRequestDto {
 
-    @NotNull(message = "Date is required")
+    @NotNull(message = "{validation.date.required}")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate date;
 
-    @NotBlank(message = "Description cannot be blank")
-    @Size(max = 255, message = "Description must not exceed 255 characters")
+    @NotBlank(message = "{validation.description.required}")
+    @Size(max = 255, message = "{validation.description.size}")
     private String description;
 
-    @NotNull(message = "Amount is required")
-    @DecimalMin(value = "0.01", message = "Amount must be at least 0.01")
+    @NotNull(message = "{validation.amount.required}")
+    @DecimalMin(value = "0.01", message = "{validation.amount.min}")
     private BigDecimal amount;
 
-    @NotNull(message = "Category is required")
+    @NotNull(message = "{validation.category.required}")
     private Category category;
 
-    @NotNull(message = "Payment method is required")
+    @NotNull(message = "{validation.paymentMethod.required}")
     private PaymentMethod paymentMethod;
 
-    @NotNull(message = "Currency is required")
+    @NotNull(message = "{validation.currency.required}")
     private Currency currency = Currency.EUR;
 
     public ExpenseRequestDto() {
@@ -40,11 +40,22 @@ public class ExpenseRequestDto {
         this.currency = Currency.EUR;
     }
 
-    public ExpenseRequestDto(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+    public ExpenseRequestDto(
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod) {
         this(date, description, amount, category, paymentMethod, Currency.EUR);
     }
 
-    public ExpenseRequestDto(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
+    public ExpenseRequestDto(
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod,
+            Currency currency) {
         this.date = date;
         this.description = description;
         this.amount = amount;

@@ -24,11 +24,24 @@ public class ExpenseResponseDto {
     public ExpenseResponseDto() {
     }
 
-    public ExpenseResponseDto(Long id, LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+    public ExpenseResponseDto(
+            Long id,
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod) {
         this(id, date, description, amount, category, paymentMethod, Currency.EUR);
     }
 
-    public ExpenseResponseDto(Long id, LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
+    public ExpenseResponseDto(
+            Long id,
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod,
+            Currency currency) {
         this.id = id;
         this.date = date;
         this.description = description;

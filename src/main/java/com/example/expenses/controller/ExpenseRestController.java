@@ -10,6 +10,7 @@ import com.example.expenses.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,9 +25,11 @@ public class ExpenseRestController {
     private static final Logger log = LoggerFactory.getLogger(ExpenseRestController.class);
 
     private final ExpenseService expenseService;
+    private final MessageSource messageSource;
 
-    public ExpenseRestController(ExpenseService expenseService) {
+    public ExpenseRestController(ExpenseService expenseService, MessageSource messageSource) {
         this.expenseService = expenseService;
+        this.messageSource = messageSource;
     }
 
     @GetMapping
@@ -82,20 +85,40 @@ public class ExpenseRestController {
     }
 
     @GetMapping("/metadata")
-    public ResponseEntity<Map<String, Object>> getMetadata() {
-        log.info("REST GET /api/v1/expenses/metadata requested");
+    public ResponseEntity<Map<String, Object>> getMetadata(Locale locale) {
+        Locale targetLocale = (locale != null) ? locale : Locale.ENGLISH;
+        log.info("REST GET /api/v1/expenses/metadata requested with locale: {}", targetLocale);
         Map<String, Object> metadata = new HashMap<>();
 
         List<Map<String, String>> categories = Arrays.stream(Category.values())
-                .map(c -> Map.of("key", c.name(), "displayName", c.getDisplayName()))
+                .map(c -> Map.of(
+                        "key", c.name(),
+                        "displayName", c.getDisplayName(),
+                        "localizedName", Objects.requireNonNull(
+                                messageSource.getMessage(
+                                        "category." + c.name(), null, c.getDisplayName(), targetLocale))
+                ))
                 .toList();
 
         List<Map<String, String>> paymentMethods = Arrays.stream(PaymentMethod.values())
-                .map(p -> Map.of("key", p.name(), "displayName", p.getDisplayName()))
+                .map(p -> Map.of(
+                        "key", p.name(),
+                        "displayName", p.getDisplayName(),
+                        "localizedName", Objects.requireNonNull(
+                                messageSource.getMessage(
+                                        "paymentMethod." + p.name(), null, p.getDisplayName(), targetLocale))
+                ))
                 .toList();
 
         List<Map<String, String>> currencies = Arrays.stream(Currency.values())
-                .map(c -> Map.of("key", c.name(), "symbol", c.getSymbol(), "displayName", c.getDisplayName()))
+                .map(c -> Map.of(
+                        "key", c.name(),
+                        "symbol", c.getSymbol(),
+                        "displayName", c.getDisplayName(),
+                        "localizedName", Objects.requireNonNull(
+                                messageSource.getMessage(
+                                        "currency." + c.name(), null, c.getDisplayName(), targetLocale))
+                ))
                 .toList();
 
         metadata.put("categories", categories);

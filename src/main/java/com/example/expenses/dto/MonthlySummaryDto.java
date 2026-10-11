@@ -26,16 +26,24 @@ public class MonthlySummaryDto {
         this.currencyBreakdown = Collections.emptyMap();
     }
 
-    public MonthlySummaryDto(int year, int month, BigDecimal totalAmount, int count,
-                             Map<Category, BigDecimal> categoryBreakdown,
-                             Map<PaymentMethod, BigDecimal> paymentMethodBreakdown) {
+    public MonthlySummaryDto(
+            int year,
+            int month,
+            BigDecimal totalAmount,
+            int count,
+            Map<Category, BigDecimal> categoryBreakdown,
+            Map<PaymentMethod, BigDecimal> paymentMethodBreakdown) {
         this(year, month, totalAmount, count, categoryBreakdown, paymentMethodBreakdown, Collections.emptyMap());
     }
 
-    public MonthlySummaryDto(int year, int month, BigDecimal totalAmount, int count,
-                             Map<Category, BigDecimal> categoryBreakdown,
-                             Map<PaymentMethod, BigDecimal> paymentMethodBreakdown,
-                             Map<Currency, BigDecimal> currencyBreakdown) {
+    public MonthlySummaryDto(
+            int year,
+            int month,
+            BigDecimal totalAmount,
+            int count,
+            Map<Category, BigDecimal> categoryBreakdown,
+            Map<PaymentMethod, BigDecimal> paymentMethodBreakdown,
+            Map<Currency, BigDecimal> currencyBreakdown) {
         this.year = year;
         this.month = month;
         this.totalAmount = totalAmount != null ? totalAmount : BigDecimal.ZERO;

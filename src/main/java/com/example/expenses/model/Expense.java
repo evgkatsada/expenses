@@ -37,11 +37,22 @@ public class Expense {
         this.currency = Currency.EUR;
     }
 
-    public Expense(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod) {
+    public Expense(
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod) {
         this(date, description, amount, category, paymentMethod, Currency.EUR);
     }
 
-    public Expense(LocalDate date, String description, BigDecimal amount, Category category, PaymentMethod paymentMethod, Currency currency) {
+    public Expense(
+            LocalDate date,
+            String description,
+            BigDecimal amount,
+            Category category,
+            PaymentMethod paymentMethod,
+            Currency currency) {
         this.date = date;
         this.description = description;
         this.amount = amount;

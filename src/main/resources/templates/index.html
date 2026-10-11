@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html th:lang="${#locale.language}" lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker</title>
+    <title th:text="#{app.title}">Expense Tracker</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -41,6 +41,10 @@
             font-weight: 600;
             color: #212529;
         }
+        .lang-flag {
+            font-size: 1.1rem;
+            line-height: 1;
+        }
     </style>
 </head>
 <body>
@@ -50,11 +54,38 @@
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="/expenses">
             <i class="bi bi-wallet2 text-success fs-4"></i>
-            <span>Expense Tracker</span>
+            <span th:text="#{app.title}">Expense Tracker</span>
         </a>
-        <div class="navbar-nav ms-auto">
+
+        <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+            <!-- Language Switcher Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-translate"></i>
+                    <span th:text="${#locale.language == 'el' ? 'Ελληνικά' : 'English'}">English</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center justify-content-between"
+                           th:classappend="${#locale.language != 'el'} ? 'active' : ''"
+                           th:href="@{/expenses(month=${selectedMonth}, lang='en')}">
+                            <span>🇬🇧 English</span>
+                            <i th:if="${#locale.language != 'el'}" class="bi bi-check2 ms-2"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center justify-content-between"
+                           th:classappend="${#locale.language == 'el'} ? 'active' : ''"
+                           th:href="@{/expenses(month=${selectedMonth}, lang='el')}">
+                            <span>🇬🇷 Ελληνικά</span>
+                            <i th:if="${#locale.language == 'el'}" class="bi bi-check2 ms-2"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
             <a class="nav-link text-white-50" href="/api/v1/expenses" target="_blank">
-                <i class="bi bi-code-slash"></i> REST API
+                <i class="bi bi-code-slash"></i> <span th:text="#{nav.restApi}">REST API</span>
             </a>
         </div>
     </div>
@@ -80,7 +111,7 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/expenses(month=${previousMonth})}" class="btn btn-outline-secondary btn-sm" title="Previous Month">
+                <a th:href="@{/expenses(month=${previousMonth})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.previousMonth}" title="Previous Month">
                     <i class="bi bi-chevron-left"></i>
                 </a>
 
@@ -88,11 +119,11 @@
                     <input type="month" name="month" class="form-control form-control-sm" th:value="${selectedMonth}" onchange="this.form.submit()">
                 </form>
 
-                <a th:href="@{/expenses(month=${nextMonth})}" class="btn btn-outline-secondary btn-sm" title="Next Month">
+                <a th:href="@{/expenses(month=${nextMonth})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.nextMonth}" title="Next Month">
                     <i class="bi bi-chevron-right"></i>
                 </a>
 
-                <a th:href="@{/expenses}" class="btn btn-sm btn-outline-primary ms-2">
+                <a th:href="@{/expenses}" class="btn btn-sm btn-outline-primary ms-2" th:text="#{nav.currentMonth}">
                     Current Month
                 </a>
             </div>
@@ -105,7 +136,7 @@
             <div class="card stat-card bg-primary text-white p-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-white-50 small text-uppercase fw-semibold">Total Expenses</div>
+                        <div class="text-white-50 small text-uppercase fw-semibold" th:text="#{summary.totalExpenses}">Total Expenses</div>
                         <div th:if="${#maps.isEmpty(summary.currencyBreakdown)}">
                             <h2 class="fw-bold mb-0 mt-1">€0.00</h2>
                         </div>
@@ -129,7 +160,7 @@
             <div class="card stat-card bg-success text-white p-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-white-50 small text-uppercase fw-semibold">Total Transactions</div>
+                        <div class="text-white-50 small text-uppercase fw-semibold" th:text="#{summary.totalTransactions}">Total Transactions</div>
                         <h2 class="fw-bold mb-0 mt-1" th:text="${summary.count}">0</h2>
                     </div>
                     <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
@@ -142,7 +173,7 @@
             <div class="card stat-card bg-info text-white p-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <div class="text-white-50 small text-uppercase fw-semibold">Categories Used</div>
+                        <div class="text-white-50 small text-uppercase fw-semibold" th:text="#{summary.categoriesUsed}">Categories Used</div>
                         <h2 class="fw-bold mb-0 mt-1" th:text="${summary.categoryBreakdown.size()}">0</h2>
                     </div>
                     <div class="bg-white bg-opacity-25 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
@@ -161,7 +192,7 @@
             <div class="card mb-4">
                 <div class="card-header bg-white py-3 border-0">
                     <h5 class="card-title mb-0 fw-bold">
-                        <i class="bi bi-plus-circle text-primary me-2"></i>Add Expense
+                        <i class="bi bi-plus-circle text-primary me-2"></i><span th:text="#{form.addExpense}">Add Expense</span>
                     </h5>
                 </div>
                 <div class="card-body pt-0">
@@ -170,7 +201,7 @@
 
                         <!-- Date -->
                         <div class="mb-3">
-                            <label for="date" class="form-label small fw-semibold text-muted">Date</label>
+                            <label for="date" class="form-label small fw-semibold text-muted" th:text="#{form.date}">Date</label>
                             <input type="date" class="form-control" id="date" th:field="*{date}"
                                    th:classappend="${#fields.hasErrors('date')} ? 'is-invalid' : ''" required>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('date')}" th:errors="*{date}">Invalid date</div>
@@ -178,8 +209,8 @@
 
                         <!-- Description -->
                         <div class="mb-3">
-                            <label for="description" class="form-label small fw-semibold text-muted">Description</label>
-                            <input type="text" class="form-control" id="description" placeholder="e.g., Weekly groceries"
+                            <label for="description" class="form-label small fw-semibold text-muted" th:text="#{form.description}">Description</label>
+                            <input type="text" class="form-control" id="description" th:placeholder="#{form.descriptionPlaceholder}" placeholder="e.g., Weekly groceries"
                                    th:field="*{description}"
                                    th:classappend="${#fields.hasErrors('description')} ? 'is-invalid' : ''" required>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}" th:errors="*{description}">Invalid description</div>
@@ -187,7 +218,7 @@
 
                         <!-- Amount & Currency -->
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold text-muted">Amount & Currency</label>
+                            <label class="form-label small fw-semibold text-muted" th:text="#{form.amountAndCurrency}">Amount & Currency</label>
                             <div class="row g-2">
                                 <div class="col-7">
                                     <div class="input-group">
@@ -212,28 +243,28 @@
 
                         <!-- Category -->
                         <div class="mb-3">
-                            <label for="category" class="form-label small fw-semibold text-muted">Category</label>
+                            <label for="category" class="form-label small fw-semibold text-muted" th:text="#{form.category}">Category</label>
                             <select class="form-select" id="category" th:field="*{category}"
                                     th:classappend="${#fields.hasErrors('category')} ? 'is-invalid' : ''" required>
-                                <option value="" disabled selected>Select category...</option>
-                                <option th:each="cat : ${categories}" th:value="${cat}" th:text="${cat.displayName}"></option>
+                                <option value="" disabled selected th:text="#{form.selectCategory}">Select category...</option>
+                                <option th:each="cat : ${categories}" th:value="${cat}" th:text="#{${'category.' + cat.name()}}"></option>
                             </select>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Please select a category</div>
                         </div>
 
                         <!-- Payment Method -->
                         <div class="mb-3">
-                            <label for="paymentMethod" class="form-label small fw-semibold text-muted">Payment Method</label>
+                            <label for="paymentMethod" class="form-label small fw-semibold text-muted" th:text="#{form.paymentMethod}">Payment Method</label>
                             <select class="form-select" id="paymentMethod" th:field="*{paymentMethod}"
                                     th:classappend="${#fields.hasErrors('paymentMethod')} ? 'is-invalid' : ''" required>
-                                <option value="" disabled selected>Select payment method...</option>
-                                <option th:each="pm : ${paymentMethods}" th:value="${pm}" th:text="${pm.displayName}"></option>
+                                <option value="" disabled selected th:text="#{form.selectPaymentMethod}">Select payment method...</option>
+                                <option th:each="pm : ${paymentMethods}" th:value="${pm}" th:text="#{${'paymentMethod.' + pm.name()}}"></option>
                             </select>
                             <div class="invalid-feedback" th:if="${#fields.hasErrors('paymentMethod')}" th:errors="*{paymentMethod}">Please select a payment method</div>
                         </div>
 
                         <button type="submit" class="btn btn-primary w-100 fw-semibold">
-                            <i class="bi bi-save me-1"></i> Save Expense
+                            <i class="bi bi-save me-1"></i> <span th:text="#{form.saveExpense}">Save Expense</span>
                         </button>
                     </form>
                 </div>
@@ -243,42 +274,42 @@
             <div class="card">
                 <div class="card-header bg-white py-3 border-0">
                     <h5 class="card-title mb-0 fw-bold">
-                        <i class="bi bi-pie-chart text-info me-2"></i>Breakdown
+                        <i class="bi bi-pie-chart text-info me-2"></i><span th:text="#{breakdown.title}">Breakdown</span>
                     </h5>
                 </div>
                 <div class="card-body pt-0">
                     <!-- Currency Breakdown -->
-                    <h6 class="text-uppercase text-muted small fw-bold mb-2">By Currency</h6>
-                    <div th:if="${#maps.isEmpty(summary.currencyBreakdown)}" class="text-muted small mb-3">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2" th:text="#{breakdown.byCurrency}">By Currency</h6>
+                    <div th:if="${#maps.isEmpty(summary.currencyBreakdown)}" class="text-muted small mb-3" th:text="#{breakdown.noCurrency}">
                         No currency data for this month.
                     </div>
                     <div th:unless="${#maps.isEmpty(summary.currencyBreakdown)}" class="mb-3">
                         <div th:each="entry : ${summary.currencyBreakdown}" class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span class="small" th:text="${entry.key.displayName}">Euro (EUR)</span>
+                            <span class="small" th:text="#{${'currency.' + entry.key.name()}}">Euro (EUR)</span>
                             <span class="small fw-semibold text-primary" th:text="${entry.key.symbol} + ' ' + ${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">€ 0.00</span>
                         </div>
                     </div>
 
                     <!-- Category Breakdown -->
-                    <h6 class="text-uppercase text-muted small fw-bold mb-2 mt-3">By Category</h6>
-                    <div th:if="${#maps.isEmpty(summary.categoryBreakdown)}" class="text-muted small mb-3">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2 mt-3" th:text="#{breakdown.byCategory}">By Category</h6>
+                    <div th:if="${#maps.isEmpty(summary.categoryBreakdown)}" class="text-muted small mb-3" th:text="#{breakdown.noCategory}">
                         No category data for this month.
                     </div>
                     <div th:unless="${#maps.isEmpty(summary.categoryBreakdown)}" class="mb-3">
                         <div th:each="entry : ${summary.categoryBreakdown}" class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span class="small" th:text="${entry.key.displayName}">Category</span>
+                            <span class="small" th:text="#{${'category.' + entry.key.name()}}">Category</span>
                             <span class="small fw-semibold" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">0.00</span>
                         </div>
                     </div>
 
                     <!-- Payment Method Breakdown -->
-                    <h6 class="text-uppercase text-muted small fw-bold mb-2 mt-3">By Payment Method</h6>
-                    <div th:if="${#maps.isEmpty(summary.paymentMethodBreakdown)}" class="text-muted small">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-2 mt-3" th:text="#{breakdown.byPaymentMethod}">By Payment Method</h6>
+                    <div th:if="${#maps.isEmpty(summary.paymentMethodBreakdown)}" class="text-muted small" th:text="#{breakdown.noPaymentMethod}">
                         No payment method data for this month.
                     </div>
                     <div th:unless="${#maps.isEmpty(summary.paymentMethodBreakdown)}">
                         <div th:each="entry : ${summary.paymentMethodBreakdown}" class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                            <span class="small" th:text="${entry.key.displayName}">Payment Method</span>
+                            <span class="small" th:text="#{${'paymentMethod.' + entry.key.name()}}">Payment Method</span>
                             <span class="small fw-semibold" th:text="${#numbers.formatDecimal(entry.value, 1, 'COMMA', 2, 'POINT')}">0.00</span>
                         </div>
                     </div>
@@ -291,9 +322,9 @@
             <div class="card">
                 <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0 fw-bold">
-                        <i class="bi bi-list-ul text-secondary me-2"></i>Expense Records
+                        <i class="bi bi-list-ul text-secondary me-2"></i><span th:text="#{table.title}">Expense Records</span>
                     </h5>
-                    <span class="badge bg-light text-dark border" th:text="${expenses.size()} + ' records'">0 records</span>
+                    <span class="badge bg-light text-dark border" th:text="${expenses.size()} + ' ' + #{table.records}">0 records</span>
                 </div>
                 <div class="card-body pt-0">
                     <!-- Empty State -->
@@ -301,8 +332,8 @@
                         <div class="text-muted mb-3">
                             <i class="bi bi-inbox fs-1"></i>
                         </div>
-                        <h6 class="text-muted">No expenses recorded for this month.</h6>
-                        <p class="text-muted small">Use the form on the left to record your first expense!</p>
+                        <h6 class="text-muted" th:text="#{table.noExpenses}">No expenses recorded for this month.</h6>
+                        <p class="text-muted small" th:text="#{table.noExpensesHint}">Use the form on the left to record your first expense!</p>
                     </div>
 
                     <!-- Table -->
@@ -310,13 +341,13 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col">Date</th>
-                                    <th scope="col">Description</th>
-                                    <th scope="col">Category</th>
-                                    <th scope="col">Payment</th>
-                                    <th scope="col">Currency</th>
-                                    <th scope="col" class="text-end">Amount</th>
-                                    <th scope="col" class="text-center" style="width: 70px;">Action</th>
+                                    <th scope="col" th:text="#{table.header.date}">Date</th>
+                                    <th scope="col" th:text="#{table.header.description}">Description</th>
+                                    <th scope="col" th:text="#{table.header.category}">Category</th>
+                                    <th scope="col" th:text="#{table.header.payment}">Payment</th>
+                                    <th scope="col" th:text="#{table.header.currency}">Currency</th>
+                                    <th scope="col" class="text-end" th:text="#{table.header.amount}">Amount</th>
+                                    <th scope="col" class="text-center" style="width: 70px;" th:text="#{table.header.action}">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -324,19 +355,21 @@
                                     <td class="small text-nowrap" th:text="${exp.date}">2026-10-10</td>
                                     <td class="fw-semibold" th:text="${exp.description}">Groceries</td>
                                     <td>
-                                        <span class="badge badge-category" th:text="${exp.categoryDisplayName}">Groceries</span>
+                                        <span class="badge badge-category" th:text="${exp.category != null ? #messages.msg('category.' + exp.category.name()) : ''}">Groceries</span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-payment" th:text="${exp.paymentMethodDisplayName}">Card</span>
+                                        <span class="badge badge-payment" th:text="${exp.paymentMethod != null ? #messages.msg('paymentMethod.' + exp.paymentMethod.name()) : ''}">Card</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-dark border" th:text="${exp.currency}">EUR</span>
                                     </td>
                                     <td class="text-end amount-text" th:text="${exp.currencySymbol} + ' ' + ${#numbers.formatDecimal(exp.amount, 1, 'COMMA', 2, 'POINT')}">€ 10.00</td>
                                     <td class="text-center">
-                                        <form th:action="@{/expenses/{id}/delete(id=${exp.id})}" method="post" onsubmit="return confirm('Are you sure you want to delete this expense?');" class="d-inline">
+                                        <form th:action="@{/expenses/{id}/delete(id=${exp.id})}" method="post"
+                                              th:data-confirm-message="#{table.action.deleteConfirm}"
+                                              onsubmit="return confirm(this.getAttribute('data-confirm-message'));" class="d-inline">
                                             <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
-                                            <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" title="Delete">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" th:title="#{table.action.delete}" title="Delete">
                                                 <i class="bi bi-trash3"></i>
                                             </button>
                                         </form>

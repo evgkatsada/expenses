@@ -9,6 +9,7 @@ import com.example.expenses.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -17,7 +18,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 @Controller
 public class ExpenseViewController {
@@ -25,9 +28,11 @@ public class ExpenseViewController {
     private static final Logger log = LoggerFactory.getLogger(ExpenseViewController.class);
 
     private final ExpenseService expenseService;
+    private final MessageSource messageSource;
 
-    public ExpenseViewController(ExpenseService expenseService) {
+    public ExpenseViewController(ExpenseService expenseService, MessageSource messageSource) {
         this.expenseService = expenseService;
+        this.messageSource = messageSource;
     }
 
     @GetMapping("/")
@@ -38,11 +43,12 @@ public class ExpenseViewController {
     @GetMapping("/expenses")
     public String showExpenses(
             @RequestParam(value = "month", required = false) String monthParam,
-            Model model) {
+            Model model,
+            Locale locale) {
 
         YearMonth yearMonth = parseYearMonth(monthParam);
-        log.info("Serving expenses web page for month: {}", yearMonth);
-        populateModel(model, yearMonth);
+        log.info("Serving expenses web page for month: {} (locale: {})", yearMonth, locale);
+        populateModel(model, yearMonth, locale);
 
         if (!model.containsAttribute("newExpense")) {
             ExpenseRequestDto dto = new ExpenseRequestDto();
@@ -60,14 +66,15 @@ public class ExpenseViewController {
             BindingResult bindingResult,
             @RequestParam(value = "selectedMonth", required = false) String selectedMonth,
             RedirectAttributes redirectAttributes,
-            Model model) {
+            Model model,
+            Locale locale) {
 
         YearMonth currentSelected = parseYearMonth(selectedMonth);
 
         if (bindingResult.hasErrors()) {
             log.warn("Expense form validation failed with {} errors for input: description='{}', amount={}",
                     bindingResult.getErrorCount(), newExpense.getDescription(), newExpense.getAmount());
-            populateModel(model, currentSelected);
+            populateModel(model, currentSelected, locale);
             return "index";
         }
 
@@ -75,7 +82,10 @@ public class ExpenseViewController {
                 newExpense.getDescription(), newExpense.getAmount(), newExpense.getCurrency(),
                 newExpense.getCategory(), newExpense.getPaymentMethod(), newExpense.getDate());
         expenseService.createExpense(newExpense);
-        redirectAttributes.addFlashAttribute("successMessage", "Expense recorded successfully!");
+        redirectAttributes.addFlashAttribute(
+                "successMessage",
+                messageSource.getMessage(
+                        "message.expense.saved", null, "Expense recorded successfully!", locale));
 
         YearMonth expenseYearMonth = YearMonth.from(newExpense.getDate());
         return "redirect:/expenses?month=" + expenseYearMonth;
@@ -85,17 +95,21 @@ public class ExpenseViewController {
     public String deleteExpense(
             @PathVariable Long id,
             @RequestParam(value = "selectedMonth", required = false) String selectedMonth,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes,
+            Locale locale) {
 
         YearMonth currentSelected = parseYearMonth(selectedMonth);
         log.info("Web request to delete expense ID: {} (current view: {})", id, currentSelected);
         expenseService.deleteExpense(id);
-        redirectAttributes.addFlashAttribute("successMessage", "Expense deleted successfully!");
+        redirectAttributes.addFlashAttribute(
+                "successMessage",
+                messageSource.getMessage(
+                        "message.expense.deleted", null, "Expense deleted successfully!", locale));
 
         return "redirect:/expenses?month=" + currentSelected;
     }
 
-    private void populateModel(Model model, YearMonth yearMonth) {
+    private void populateModel(Model model, YearMonth yearMonth, Locale locale) {
         int year = yearMonth.getYear();
         int month = yearMonth.getMonthValue();
 
@@ -110,7 +124,11 @@ public class ExpenseViewController {
         model.addAttribute("selectedMonth", yearMonth.toString());
         model.addAttribute("previousMonth", yearMonth.minusMonths(1).toString());
         model.addAttribute("nextMonth", yearMonth.plusMonths(1).toString());
-        model.addAttribute("currentMonthFormatted", yearMonth.getMonth().name() + " " + yearMonth.getYear());
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale);
+        String formatted = yearMonth.format(formatter);
+        String currentMonthFormatted = formatted.substring(0, 1).toUpperCase(locale) + formatted.substring(1);
+        model.addAttribute("currentMonthFormatted", currentMonthFormatted);
     }
 
     private YearMonth parseYearMonth(String monthParam) {

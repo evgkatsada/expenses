@@ -1,0 +1,138 @@
+package com.example.expenses;
+
+import com.example.expenses.config.I18nConfig;
+import com.example.expenses.controller.ExpenseViewController;
+import com.example.expenses.dto.ExpenseResponseDto;
+import com.example.expenses.dto.MonthlySummaryDto;
+import com.example.expenses.model.Category;
+import com.example.expenses.model.Currency;
+import com.example.expenses.model.PaymentMethod;
+import com.example.expenses.service.ExpenseService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(ExpenseViewController.class)
+@Import(I18nConfig.class)
+class ExpenseViewControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private ExpenseService expenseService;
+
+    @Test
+    void testShowExpensesInEnglishByDefault() throws Exception {
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, BigDecimal.ZERO, 0, Collections.emptyMap(), Collections.emptyMap()));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/expenses"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Expense Tracker")))
+                .andExpect(content().string(containsString("Add Expense")))
+                .andExpect(content().string(containsString("Total Expenses")))
+                .andExpect(content().string(containsString("No expenses recorded for this month.")));
+    }
+
+    @Test
+    void testShowExpensesInGreekWithLangParam() throws Exception {
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, BigDecimal.ZERO, 0, Collections.emptyMap(), Collections.emptyMap()));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/expenses").param("lang", "el"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Διαχείριση Εξόδων")))
+                .andExpect(content().string(containsString("Προσθήκη Εξόδου")))
+                .andExpect(content().string(containsString("ΣΥΝΟΛΙΚΑ ΕΞΟΔΑ")))
+                .andExpect(content().string(containsString("Δεν έχουν καταγραφεί έξοδα για αυτόν τον μήνα.")));
+    }
+
+    @Test
+    void testRenderGreekCategoriesAndCurrencies() throws Exception {
+        ExpenseResponseDto expenseDto = new ExpenseResponseDto(
+                1L,
+                LocalDate.of(2026, 10, 10),
+                "Ψώνια",
+                new BigDecimal("25.00"),
+                Category.GROCERIES,
+                PaymentMethod.CREDIT_CARD,
+                Currency.EUR
+        );
+
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, new BigDecimal("25.00"), 1,
+                        Collections.singletonMap(Category.GROCERIES, new BigDecimal("25.00")),
+                        Collections.singletonMap(PaymentMethod.CREDIT_CARD, new BigDecimal("25.00")),
+                        Collections.singletonMap(Currency.EUR, new BigDecimal("25.00"))));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(List.of(expenseDto));
+
+        mockMvc.perform(get("/expenses").locale(Locale.forLanguageTag("el")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Σούπερ Μάρκετ")))
+                .andExpect(content().string(containsString("Πιστωτική Κάρτα")))
+                .andExpect(content().string(containsString("Ευρώ (EUR)")));
+    }
+
+    @Test
+    void testFlashSuccessMessageInGreek() throws Exception {
+        mockMvc.perform(post("/expenses/1/delete").locale(Locale.forLanguageTag("el")))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("successMessage", "Το έξοδο διαγράφηκε με επιτυχία!"));
+    }
+
+    @Test
+    void testValidationErrorsInGreek() throws Exception {
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, BigDecimal.ZERO, 0, Collections.emptyMap(), Collections.emptyMap()));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(Collections.emptyList());
+
+        mockMvc.perform(post("/expenses")
+                        .locale(Locale.forLanguageTag("el"))
+                        .param("description", "")
+                        .param("amount", "0")
+                        .param("selectedMonth", "2026-10"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("index"))
+                .andExpect(content().string(containsString("Η περιγραφή δεν μπορεί να είναι κενή")))
+                .andExpect(content().string(containsString("Το ποσό πρέπει να είναι τουλάχιστον 0.01")));
+    }
+
+    @Test
+    void testAddExpenseSuccessInGreek() throws Exception {
+        mockMvc.perform(post("/expenses")
+                        .locale(Locale.forLanguageTag("el"))
+                        .param("date", "2026-10-11")
+                        .param("description", "Καφές")
+                        .param("amount", "3.50")
+                        .param("category", "FOOD_AND_DINING")
+                        .param("paymentMethod", "CREDIT_CARD")
+                        .param("currency", "EUR")
+                        .param("selectedMonth", "2026-10"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/expenses?month=2026-10"))
+                .andExpect(flash().attribute("successMessage", "Το έξοδο καταχωρήθηκε με επιτυχία!"));
+    }
+}
