@@ -45,6 +45,18 @@
             font-size: 1.1rem;
             line-height: 1;
         }
+        .sort-header {
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.15s ease-in-out;
+        }
+        .sort-header:hover {
+            color: var(--bs-primary) !important;
+        }
+        .sort-header:hover .bi-arrow-down-up {
+            opacity: 1 !important;
+            color: var(--bs-primary) !important;
+        }
     </style>
 </head>
 <body>
@@ -68,7 +80,7 @@
                     <li>
                         <a class="dropdown-item d-flex align-items-center justify-content-between"
                            th:classappend="${#locale.language != 'el'} ? 'active' : ''"
-                           th:href="@{/expenses(month=${selectedMonth}, lang='en')}">
+                           th:href="@{/expenses(month=${selectedMonth}, sortBy=${sortBy}, direction=${direction}, lang='en')}">
                             <span>🇬🇧 English</span>
                             <i th:if="${#locale.language != 'el'}" class="bi bi-check2 ms-2"></i>
                         </a>
@@ -76,7 +88,7 @@
                     <li>
                         <a class="dropdown-item d-flex align-items-center justify-content-between"
                            th:classappend="${#locale.language == 'el'} ? 'active' : ''"
-                           th:href="@{/expenses(month=${selectedMonth}, lang='el')}">
+                           th:href="@{/expenses(month=${selectedMonth}, sortBy=${sortBy}, direction=${direction}, lang='el')}">
                             <span>🇬🇷 Ελληνικά</span>
                             <i th:if="${#locale.language == 'el'}" class="bi bi-check2 ms-2"></i>
                         </a>
@@ -111,19 +123,21 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                <a th:href="@{/expenses(month=${previousMonth})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.previousMonth}" title="Previous Month">
+                <a th:href="@{/expenses(month=${previousMonth}, sortBy=${sortBy}, direction=${direction})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.previousMonth}" title="Previous Month">
                     <i class="bi bi-chevron-left"></i>
                 </a>
 
                 <form th:action="@{/expenses}" method="get" class="d-flex align-items-center gap-2 m-0">
+                    <input type="hidden" name="sortBy" th:value="${sortBy}" />
+                    <input type="hidden" name="direction" th:value="${direction}" />
                     <input type="month" name="month" class="form-control form-control-sm" th:value="${selectedMonth}" onchange="this.form.submit()">
                 </form>
 
-                <a th:href="@{/expenses(month=${nextMonth})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.nextMonth}" title="Next Month">
+                <a th:href="@{/expenses(month=${nextMonth}, sortBy=${sortBy}, direction=${direction})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.nextMonth}" title="Next Month">
                     <i class="bi bi-chevron-right"></i>
                 </a>
 
-                <a th:href="@{/expenses}" class="btn btn-sm btn-outline-primary ms-2" th:text="#{nav.currentMonth}">
+                <a th:href="@{/expenses(sortBy=${sortBy}, direction=${direction})}" class="btn btn-sm btn-outline-primary ms-2" th:text="#{nav.currentMonth}">
                     Current Month
                 </a>
             </div>
@@ -198,6 +212,8 @@
                 <div class="card-body pt-0">
                     <form th:action="@{/expenses}" th:object="${newExpense}" method="post">
                         <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
+                        <input type="hidden" name="sortBy" th:value="${sortBy}" />
+                        <input type="hidden" name="direction" th:value="${direction}" />
 
                         <!-- Date -->
                         <div class="mb-3">
@@ -341,12 +357,39 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th scope="col" th:text="#{table.header.date}">Date</th>
+                                    <th scope="col" th:aria-sort="${sortBy == 'date' ? (direction == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                                        <a th:href="@{/expenses(month=${selectedMonth}, sortBy='date', direction=${sortBy == 'date' ? (direction == 'asc' ? 'desc' : 'asc') : 'desc'})}"
+                                           class="text-decoration-none text-dark d-inline-flex align-items-center gap-1 sort-header"
+                                           th:title="${sortBy == 'date' ? (direction == 'asc' ? #messages.msg('table.sort.asc') : #messages.msg('table.sort.desc')) : #messages.msg('table.sort.clickToSort')}">
+                                            <span th:text="#{table.header.date}">Date</span>
+                                            <i th:if="${sortBy == 'date' and direction == 'asc'}" class="bi bi-arrow-up text-primary fw-bold"></i>
+                                            <i th:if="${sortBy == 'date' and direction == 'desc'}" class="bi bi-arrow-down text-primary fw-bold"></i>
+                                            <i th:if="${sortBy != 'date'}" class="bi bi-arrow-down-up text-muted opacity-50"></i>
+                                        </a>
+                                    </th>
                                     <th scope="col" th:text="#{table.header.description}">Description</th>
-                                    <th scope="col" th:text="#{table.header.category}">Category</th>
+                                    <th scope="col" th:aria-sort="${sortBy == 'category' ? (direction == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                                        <a th:href="@{/expenses(month=${selectedMonth}, sortBy='category', direction=${sortBy == 'category' ? (direction == 'asc' ? 'desc' : 'asc') : 'asc'})}"
+                                           class="text-decoration-none text-dark d-inline-flex align-items-center gap-1 sort-header"
+                                           th:title="${sortBy == 'category' ? (direction == 'asc' ? #messages.msg('table.sort.asc') : #messages.msg('table.sort.desc')) : #messages.msg('table.sort.clickToSort')}">
+                                            <span th:text="#{table.header.category}">Category</span>
+                                            <i th:if="${sortBy == 'category' and direction == 'asc'}" class="bi bi-arrow-up text-primary fw-bold"></i>
+                                            <i th:if="${sortBy == 'category' and direction == 'desc'}" class="bi bi-arrow-down text-primary fw-bold"></i>
+                                            <i th:if="${sortBy != 'category'}" class="bi bi-arrow-down-up text-muted opacity-50"></i>
+                                        </a>
+                                    </th>
                                     <th scope="col" th:text="#{table.header.payment}">Payment</th>
                                     <th scope="col" th:text="#{table.header.currency}">Currency</th>
-                                    <th scope="col" class="text-end" th:text="#{table.header.amount}">Amount</th>
+                                    <th scope="col" class="text-end" th:aria-sort="${sortBy == 'amount' ? (direction == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                                        <a th:href="@{/expenses(month=${selectedMonth}, sortBy='amount', direction=${sortBy == 'amount' ? (direction == 'asc' ? 'desc' : 'asc') : 'desc'})}"
+                                           class="text-decoration-none text-dark d-inline-flex align-items-center justify-content-end gap-1 sort-header"
+                                           th:title="${sortBy == 'amount' ? (direction == 'asc' ? #messages.msg('table.sort.asc') : #messages.msg('table.sort.desc')) : #messages.msg('table.sort.clickToSort')}">
+                                            <span th:text="#{table.header.amount}">Amount</span>
+                                            <i th:if="${sortBy == 'amount' and direction == 'asc'}" class="bi bi-arrow-up text-primary fw-bold"></i>
+                                            <i th:if="${sortBy == 'amount' and direction == 'desc'}" class="bi bi-arrow-down text-primary fw-bold"></i>
+                                            <i th:if="${sortBy != 'amount'}" class="bi bi-arrow-down-up text-muted opacity-50"></i>
+                                        </a>
+                                    </th>
                                     <th scope="col" class="text-center" style="width: 70px;" th:text="#{table.header.action}">Action</th>
                                 </tr>
                             </thead>
@@ -369,6 +412,8 @@
                                               th:data-confirm-message="#{table.action.deleteConfirm}"
                                               onsubmit="return confirm(this.getAttribute('data-confirm-message'));" class="d-inline">
                                             <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
+                                            <input type="hidden" name="sortBy" th:value="${sortBy}" />
+                                            <input type="hidden" name="direction" th:value="${direction}" />
                                             <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" th:title="#{table.action.delete}" title="Delete">
                                                 <i class="bi bi-trash3"></i>
                                             </button>

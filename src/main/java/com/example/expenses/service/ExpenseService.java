@@ -8,15 +8,22 @@ import com.example.expenses.model.Currency;
 import com.example.expenses.model.Expense;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.repository.ExpenseRepository;
+import com.example.expenses.util.ExpenseSortUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.*;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,8 +34,16 @@ public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
 
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    private final MessageSource messageSource;
+
+    @Autowired
+    public ExpenseService(ExpenseRepository expenseRepository, MessageSource messageSource) {
         this.expenseRepository = expenseRepository;
+        this.messageSource = messageSource;
+    }
+
+    public ExpenseService(ExpenseRepository expenseRepository) {
+        this(expenseRepository, null);
     }
 
     public ExpenseResponseDto createExpense(ExpenseRequestDto requestDto) {
@@ -95,6 +110,12 @@ public class ExpenseService {
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExpenseResponseDto> getExpensesByMonth(int year, int month, String sortBy, String direction, Locale locale) {
+        List<ExpenseResponseDto> expenses = getExpensesByMonth(year, month);
+        return ExpenseSortUtil.sort(expenses, sortBy, direction, messageSource, locale);
     }
 
     @Transactional(readOnly = true)

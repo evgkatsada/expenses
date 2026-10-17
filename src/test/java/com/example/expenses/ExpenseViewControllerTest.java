@@ -135,4 +135,77 @@ class ExpenseViewControllerTest {
                 .andExpect(redirectedUrl("/expenses?month=2026-10"))
                 .andExpect(flash().attribute("successMessage", "Το έξοδο καταχωρήθηκε με επιτυχία!"));
     }
+
+    @Test
+    void testShowExpensesWithAmountSorting() throws Exception {
+        ExpenseResponseDto expense1 = new ExpenseResponseDto(
+                1L, LocalDate.of(2026, 10, 1), "Small expense", new BigDecimal("10.00"),
+                Category.GROCERIES, PaymentMethod.DEBIT_CARD, Currency.EUR
+        );
+        ExpenseResponseDto expense2 = new ExpenseResponseDto(
+                2L, LocalDate.of(2026, 10, 2), "Large expense", new BigDecimal("100.00"),
+                Category.SHOPPING, PaymentMethod.CREDIT_CARD, Currency.EUR
+        );
+
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, new BigDecimal("110.00"), 2, Collections.emptyMap(), Collections.emptyMap()));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(List.of(expense2, expense1));
+
+        mockMvc.perform(get("/expenses")
+                        .param("sortBy", "amount")
+                        .param("direction", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("sortBy", "amount"))
+                .andExpect(model().attribute("direction", "asc"))
+                .andExpect(content().string(containsString("aria-sort=\"ascending\"")))
+                .andExpect(content().string(containsString("Small expense")));
+    }
+
+    @Test
+    void testShowExpensesWithCategorySorting() throws Exception {
+        ExpenseResponseDto expense = new ExpenseResponseDto(
+                1L, LocalDate.of(2026, 10, 1), "Groceries", new BigDecimal("15.00"),
+                Category.GROCERIES, PaymentMethod.DEBIT_CARD, Currency.EUR
+        );
+
+        when(expenseService.getMonthlySummary(anyInt(), anyInt()))
+                .thenReturn(new MonthlySummaryDto(2026, 10, new BigDecimal("15.00"), 1, Collections.emptyMap(), Collections.emptyMap()));
+        when(expenseService.getExpensesByMonth(anyInt(), anyInt()))
+                .thenReturn(List.of(expense));
+
+        mockMvc.perform(get("/expenses")
+                        .param("sortBy", "category")
+                        .param("direction", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("sortBy", "category"))
+                .andExpect(model().attribute("direction", "desc"))
+                .andExpect(content().string(containsString("aria-sort=\"descending\"")));
+    }
+
+    @Test
+    void testAddExpensePreservesSortParams() throws Exception {
+        mockMvc.perform(post("/expenses")
+                        .param("date", "2026-10-15")
+                        .param("description", "Dinner")
+                        .param("amount", "40.00")
+                        .param("category", "FOOD_AND_DINING")
+                        .param("paymentMethod", "CREDIT_CARD")
+                        .param("currency", "EUR")
+                        .param("selectedMonth", "2026-10")
+                        .param("sortBy", "amount")
+                        .param("direction", "asc"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/expenses?month=2026-10&sortBy=amount&direction=asc"));
+    }
+
+    @Test
+    void testDeleteExpensePreservesSortParams() throws Exception {
+        mockMvc.perform(post("/expenses/1/delete")
+                        .param("selectedMonth", "2026-10")
+                        .param("sortBy", "category")
+                        .param("direction", "desc"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/expenses?month=2026-10&sortBy=category&direction=desc"));
+    }
 }

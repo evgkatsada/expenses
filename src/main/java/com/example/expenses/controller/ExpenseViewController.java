@@ -1,11 +1,13 @@
 package com.example.expenses.controller;
 
 import com.example.expenses.dto.ExpenseRequestDto;
+import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
 import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
 import com.example.expenses.service.ExpenseService;
+import com.example.expenses.util.ExpenseSortUtil;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Locale;
 
 @Controller
@@ -43,12 +46,18 @@ public class ExpenseViewController {
     @GetMapping("/expenses")
     public String showExpenses(
             @RequestParam(value = "month", required = false) String monthParam,
+            @RequestParam(value = "sortBy", required = false) String sortByParam,
+            @RequestParam(value = "direction", required = false) String directionParam,
             Model model,
             Locale locale) {
 
         YearMonth yearMonth = parseYearMonth(monthParam);
-        log.info("Serving expenses web page for month: {} (locale: {})", yearMonth, locale);
-        populateModel(model, yearMonth, locale);
+        String sortBy = ExpenseSortUtil.normalizeSortBy(sortByParam);
+        String direction = ExpenseSortUtil.normalizeDirection(sortBy, directionParam);
+
+        log.info("Serving expenses web page for month: {} (locale: {}, sortBy: {}, direction: {})",
+                yearMonth, locale, sortBy, direction);
+        populateModel(model, yearMonth, locale, sortBy, direction);
 
         if (!model.containsAttribute("newExpense")) {
             ExpenseRequestDto dto = new ExpenseRequestDto();
@@ -65,6 +74,8 @@ public class ExpenseViewController {
             @Valid @ModelAttribute("newExpense") ExpenseRequestDto newExpense,
             BindingResult bindingResult,
             @RequestParam(value = "selectedMonth", required = false) String selectedMonth,
+            @RequestParam(value = "sortBy", required = false) String sortBy,
+            @RequestParam(value = "direction", required = false) String direction,
             RedirectAttributes redirectAttributes,
             Model model,
             Locale locale) {
@@ -74,7 +85,9 @@ public class ExpenseViewController {
         if (bindingResult.hasErrors()) {
             log.warn("Expense form validation failed with {} errors for input: description='{}', amount={}",
                     bindingResult.getErrorCount(), newExpense.getDescription(), newExpense.getAmount());
-            populateModel(model, currentSelected, locale);
+            String validSortBy = ExpenseSortUtil.normalizeSortBy(sortBy);
+            String validDirection = ExpenseSortUtil.normalizeDirection(validSortBy, direction);
+            populateModel(model, currentSelected, locale, validSortBy, validDirection);
             return "index";
         }
 
@@ -88,13 +101,15 @@ public class ExpenseViewController {
                         "message.expense.saved", null, "Expense recorded successfully!", locale));
 
         YearMonth expenseYearMonth = YearMonth.from(newExpense.getDate());
-        return "redirect:/expenses?month=" + expenseYearMonth;
+        return getRedirectUrl(sortBy, direction, expenseYearMonth);
     }
 
     @PostMapping("/expenses/{id}/delete")
     public String deleteExpense(
             @PathVariable Long id,
             @RequestParam(value = "selectedMonth", required = false) String selectedMonth,
+            @RequestParam(value = "sortBy", required = false) String sortBy,
+            @RequestParam(value = "direction", required = false) String direction,
             RedirectAttributes redirectAttributes,
             Locale locale) {
 
@@ -106,16 +121,22 @@ public class ExpenseViewController {
                 messageSource.getMessage(
                         "message.expense.deleted", null, "Expense deleted successfully!", locale));
 
-        return "redirect:/expenses?month=" + currentSelected;
+        return getRedirectUrl(sortBy, direction, currentSelected);
     }
 
     private void populateModel(Model model, YearMonth yearMonth, Locale locale) {
+        populateModel(model, yearMonth, locale, ExpenseSortUtil.SORT_DATE, ExpenseSortUtil.DIR_DESC);
+    }
+
+    private void populateModel(Model model, YearMonth yearMonth, Locale locale, String sortBy, String direction) {
         int year = yearMonth.getYear();
         int month = yearMonth.getMonthValue();
 
         MonthlySummaryDto summary = expenseService.getMonthlySummary(year, month);
+        List<ExpenseResponseDto> expenses = expenseService.getExpensesByMonth(year, month);
+        List<ExpenseResponseDto> sortedExpenses = ExpenseSortUtil.sort(expenses, sortBy, direction, messageSource, locale);
 
-        model.addAttribute("expenses", expenseService.getExpensesByMonth(year, month));
+        model.addAttribute("expenses", sortedExpenses);
         model.addAttribute("summary", summary);
         model.addAttribute("categories", Category.values());
         model.addAttribute("paymentMethods", PaymentMethod.values());
@@ -124,6 +145,8 @@ public class ExpenseViewController {
         model.addAttribute("selectedMonth", yearMonth.toString());
         model.addAttribute("previousMonth", yearMonth.minusMonths(1).toString());
         model.addAttribute("nextMonth", yearMonth.plusMonths(1).toString());
+        model.addAttribute("sortBy", sortBy);
+        model.addAttribute("direction", direction);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale);
         String formatted = yearMonth.format(formatter);
@@ -141,4 +164,16 @@ public class ExpenseViewController {
         }
         return YearMonth.now();
     }
+
+    private static String getRedirectUrl(String sortBy, String direction, YearMonth expenseYearMonth) {
+        String redirectUrl = "/expenses?month=" + expenseYearMonth;
+        if (sortBy != null && !sortBy.isBlank()) {
+            redirectUrl += "&sortBy=" + ExpenseSortUtil.normalizeSortBy(sortBy);
+            if (direction != null && !direction.isBlank()) {
+                redirectUrl += "&direction=" + ExpenseSortUtil.normalizeDirection(sortBy, direction);
+            }
+        }
+        return "redirect:" + redirectUrl;
+    }
+
 }
