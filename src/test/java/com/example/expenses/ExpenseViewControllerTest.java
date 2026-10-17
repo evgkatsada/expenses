@@ -2,17 +2,20 @@ package com.example.expenses;
 
 import com.example.expenses.config.I18nConfig;
 import com.example.expenses.controller.ExpenseViewController;
+import com.example.expenses.dto.ExpenseImportResultDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
 import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
+import com.example.expenses.service.ExpenseImportService;
 import com.example.expenses.service.ExpenseService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -20,11 +23,14 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -37,6 +43,9 @@ class ExpenseViewControllerTest {
 
     @MockBean
     private ExpenseService expenseService;
+
+    @MockBean
+    private ExpenseImportService expenseImportService;
 
     @Test
     void testShowExpensesInEnglishByDefault() throws Exception {
@@ -207,5 +216,40 @@ class ExpenseViewControllerTest {
                         .param("direction", "desc"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/expenses?month=2026-10&sortBy=category&direction=desc"));
+    }
+
+    @Test
+    void testImportCsvSuccessRedirectsToTargetMonth() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "expenses.csv", "text/csv",
+                "1/9/2026,Netflix,,\"8,00 €\",,,\n".getBytes()
+        );
+
+        ExpenseImportResultDto result = new ExpenseImportResultDto(1, 1, 0);
+        result.setAffectedMonths(Set.of("2026-09"));
+
+        when(expenseImportService.importExpensesFromCsv(any(MockMultipartFile.class)))
+                .thenReturn(result);
+
+        mockMvc.perform(multipart("/expenses/import")
+                        .file(file)
+                        .param("selectedMonth", "2026-10")
+                        .param("sortBy", "amount")
+                        .param("direction", "desc"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/expenses?month=2026-09&sortBy=amount&direction=desc"))
+                .andExpect(flash().attribute("successMessage", containsString("Successfully imported 1 expenses!")));
+    }
+
+    @Test
+    void testImportCsvEmptyFileShowsError() throws Exception {
+        MockMultipartFile emptyFile = new MockMultipartFile("file", "", "text/csv", new byte[0]);
+
+        mockMvc.perform(multipart("/expenses/import")
+                        .file(emptyFile)
+                        .param("selectedMonth", "2026-10"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/expenses?month=2026-10"))
+                .andExpect(flash().attribute("errorMessage", containsString("The uploaded file is empty.")));
     }
 }

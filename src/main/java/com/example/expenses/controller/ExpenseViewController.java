@@ -1,21 +1,25 @@
 package com.example.expenses.controller;
 
+import com.example.expenses.dto.ExpenseImportResultDto;
 import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
 import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
+import com.example.expenses.service.ExpenseImportService;
 import com.example.expenses.service.ExpenseService;
 import com.example.expenses.util.ExpenseSortUtil;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -32,10 +36,17 @@ public class ExpenseViewController {
 
     private final ExpenseService expenseService;
     private final MessageSource messageSource;
+    private final ExpenseImportService expenseImportService;
 
-    public ExpenseViewController(ExpenseService expenseService, MessageSource messageSource) {
+    @Autowired
+    public ExpenseViewController(ExpenseService expenseService, MessageSource messageSource, ExpenseImportService expenseImportService) {
         this.expenseService = expenseService;
         this.messageSource = messageSource;
+        this.expenseImportService = expenseImportService;
+    }
+
+    public ExpenseViewController(ExpenseService expenseService, MessageSource messageSource) {
+        this(expenseService, messageSource, null);
     }
 
     @GetMapping("/")
@@ -120,6 +131,53 @@ public class ExpenseViewController {
                 "successMessage",
                 messageSource.getMessage(
                         "message.expense.deleted", null, "Expense deleted successfully!", locale));
+
+        return getRedirectUrl(sortBy, direction, currentSelected);
+    }
+
+    @PostMapping("/expenses/import")
+    public String importCsv(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "selectedMonth", required = false) String selectedMonth,
+            @RequestParam(value = "sortBy", required = false) String sortBy,
+            @RequestParam(value = "direction", required = false) String direction,
+            RedirectAttributes redirectAttributes,
+            Locale locale) {
+
+        YearMonth currentSelected = parseYearMonth(selectedMonth);
+
+        if (file == null || file.isEmpty()) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    messageSource.getMessage("import.emptyFile", null, "The uploaded file is empty.", locale));
+            return getRedirectUrl(sortBy, direction, currentSelected);
+        }
+
+        log.info("Web request to import CSV file: {} (current view: {})", file.getOriginalFilename(), currentSelected);
+        ExpenseImportResultDto result = expenseImportService.importExpensesFromCsv(file);
+
+        if (result.getExpensesImported() > 0) {
+            String msg = messageSource.getMessage(
+                    "import.success",
+                    new Object[]{result.getExpensesImported()},
+                    "Successfully imported " + result.getExpensesImported() + " expenses!",
+                    locale);
+            redirectAttributes.addFlashAttribute("successMessage", msg);
+
+            if (!result.getAffectedMonths().isEmpty()) {
+                String targetMonthStr = result.getAffectedMonths().iterator().next();
+                YearMonth targetMonth = parseYearMonth(targetMonthStr);
+                return getRedirectUrl(sortBy, direction, targetMonth);
+            }
+        } else {
+            String errDetail = !result.getErrorMessages().isEmpty() ? result.getErrorMessages().get(0) : "No valid expenses found.";
+            String msg = messageSource.getMessage(
+                    "import.error",
+                    new Object[]{errDetail},
+                    "Error importing file: " + errDetail,
+                    locale);
+            redirectAttributes.addFlashAttribute("errorMessage", msg);
+        }
 
         return getRedirectUrl(sortBy, direction, currentSelected);
     }

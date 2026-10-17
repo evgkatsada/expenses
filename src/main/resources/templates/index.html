@@ -112,6 +112,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 
+    <!-- Flash Error Message -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <span th:text="${errorMessage}">An error occurred.</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <!-- Month Navigation Bar -->
     <div class="card p-3 mb-4">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -123,6 +130,11 @@
             </div>
 
             <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success d-flex align-items-center gap-1 me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <i class="bi bi-file-earmark-arrow-up"></i>
+                    <span th:text="#{import.button}">Import CSV</span>
+                </button>
+
                 <a th:href="@{/expenses(month=${previousMonth}, sortBy=${sortBy}, direction=${direction})}" class="btn btn-outline-secondary btn-sm" th:title="#{nav.previousMonth}" title="Previous Month">
                     <i class="bi bi-chevron-left"></i>
                 </a>
@@ -425,6 +437,46 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import CSV Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="importModalLabel">
+                    <i class="bi bi-file-earmark-arrow-up text-success me-2"></i><span th:text="#{import.title}">Import Expenses from CSV</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form th:action="@{/expenses/import}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="selectedMonth" th:value="${selectedMonth}" />
+                <input type="hidden" name="sortBy" th:value="${sortBy}" />
+                <input type="hidden" name="direction" th:value="${direction}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label small fw-semibold text-muted" th:text="#{import.fileSelect}">Select CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="file" accept=".csv,.txt" required>
+                    </div>
+                    <div class="alert alert-light border small text-muted mb-0">
+                        <div class="fw-semibold mb-1" th:text="#{import.supportedFormat}">Supported CSV Format:</div>
+                        <code>Έξοδα,,Μετρητά,Ηλεκτρονικά,Ticket Restaurant,,,</code><br>
+                        <code>1/9/2026,Netflix,,"8,00 €",,,</code><br>
+                        <code>1/9/2026,Κάρτες/Παγια κινητών Vodafone - Cosmote,,"46,00 €",,,</code>
+                        <div class="mt-2 text-muted" th:text="#{import.mappingNote}">
+                            Columns: Date, Description, Cash (Μετρητά), Debit Card (Ηλεκτρονικά), Gift Card (Ticket Restaurant). Category is inferred automatically.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" th:text="#{import.cancel}">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-upload me-1"></i> <span th:text="#{import.submit}">Upload &amp; Import</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

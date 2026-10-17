@@ -1,19 +1,24 @@
 package com.example.expenses.controller;
 
+import com.example.expenses.dto.ExpenseImportResultDto;
 import com.example.expenses.dto.ExpenseRequestDto;
 import com.example.expenses.dto.ExpenseResponseDto;
 import com.example.expenses.dto.MonthlySummaryDto;
 import com.example.expenses.model.Category;
 import com.example.expenses.model.Currency;
 import com.example.expenses.model.PaymentMethod;
+import com.example.expenses.service.ExpenseImportService;
 import com.example.expenses.service.ExpenseService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -26,10 +31,17 @@ public class ExpenseRestController {
 
     private final ExpenseService expenseService;
     private final MessageSource messageSource;
+    private final ExpenseImportService expenseImportService;
 
-    public ExpenseRestController(ExpenseService expenseService, MessageSource messageSource) {
+    @Autowired
+    public ExpenseRestController(ExpenseService expenseService, MessageSource messageSource, ExpenseImportService expenseImportService) {
         this.expenseService = expenseService;
         this.messageSource = messageSource;
+        this.expenseImportService = expenseImportService;
+    }
+
+    public ExpenseRestController(ExpenseService expenseService, MessageSource messageSource) {
+        this(expenseService, messageSource, null);
     }
 
     @GetMapping
@@ -126,5 +138,17 @@ public class ExpenseRestController {
         metadata.put("currencies", currencies);
         metadata.put("defaultCurrency", Currency.EUR.name());
         return ResponseEntity.ok(metadata);
+    }
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ExpenseImportResultDto> importExpenses(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            ExpenseImportResultDto errorResult = new ExpenseImportResultDto(0, 0, 1);
+            errorResult.getErrorMessages().add("The uploaded file is empty.");
+            return ResponseEntity.badRequest().body(errorResult);
+        }
+        log.info("REST POST /api/v1/expenses/import requested for file: {}", file.getOriginalFilename());
+        ExpenseImportResultDto result = expenseImportService.importExpensesFromCsv(file);
+        return ResponseEntity.ok(result);
     }
 }
